@@ -11,7 +11,7 @@ namespace CAM {
 const Interface::FunctionInfo FunctionTable[] = {
     {0x00010040, StartCapture, "StartCapture"},
     {0x00020040, StopCapture, "StopCapture"},
-    {0x00030040, nullptr, "IsBusy"},
+    {0x00030040, IsBusy, "IsBusy"},
     {0x00040040, nullptr, "ClearBuffer"},
     {0x00050040, GetVsyncInterruptEvent, "GetVsyncInterruptEvent"},
     {0x00060040, GetBufferErrorInterruptEvent, "GetBufferErrorInterruptEvent"},

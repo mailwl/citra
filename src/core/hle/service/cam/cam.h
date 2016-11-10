@@ -423,6 +423,8 @@ void DriverInitialize(Service::Interface* self);
  */
 void DriverFinalize(Service::Interface* self);
 
+void IsBusy(Service::Interface* self);
+
 /// Initialize CAM service(s)
 void Init();
 

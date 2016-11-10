@@ -283,6 +283,15 @@ void DriverFinalize(Service::Interface* self) {
     LOG_WARNING(Service_CAM, "(STUBBED) called");
 }
 
+void IsBusy(Service::Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
+
+    cmd_buff[1] = RESULT_SUCCESS.raw;
+    cmd_buff[2] = false;
+
+    LOG_WARNING(Service_CAM, "(STUBBED) called");
+}
+
 void Init() {
     using namespace Kernel;
 

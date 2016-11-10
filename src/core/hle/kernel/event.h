@@ -38,12 +38,14 @@ public:
     bool ShouldWait() override;
     void Acquire() override;
 
-    void Signal();
+    void Signal(u64 delay = 100);
     void Clear();
 
 private:
     Event();
     ~Event() override;
+
+    s32 event_callback_type;
 };
 
 } // namespace
