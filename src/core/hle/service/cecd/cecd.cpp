@@ -42,6 +42,13 @@ void GetChangeStateEventHandle(Service::Interface* self) {
     LOG_WARNING(Service_CECD, "(STUBBED) called");
 }
 
+void OpenAndRead(Service::Interface* self) {
+    u32* cmd_buff = Kernel::GetCommandBuffer();
+
+    cmd_buff[1] = -1;
+    LOG_WARNING(Service_CECD, "(STUBBED) called");
+}
+
 void Init() {
     AddService(new CECD_S_Interface);
     AddService(new CECD_U_Interface);
