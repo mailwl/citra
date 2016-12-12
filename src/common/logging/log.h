@@ -88,6 +88,13 @@ enum class Class : ClassType {
     Count              ///< Total number of logging classes
 };
 
+/// Logs a memory dump to global logger
+void LogDump(Class log_class, const char* filename, unsigned int line_nr, const char* function,
+             unsigned int address, unsigned int size);
+
+void LogDumpMem(Class log_class, const char* filename, unsigned int line_nr, const char* function,
+                const unsigned char* address, unsigned int size);
+
 /// Logs a message to the global logger.
 void LogMessage(Class log_class, Level log_level, const char* filename, unsigned int line_nr,
                 const char* function,
@@ -102,6 +109,12 @@ void LogMessage(Class log_class, Level log_level, const char* filename, unsigned
     ;
 
 } // namespace Log
+
+#define LOG_DUMP(log_class, address, size)                                                         \
+    ::Log::LogDump(::Log::Class::log_class, __FILE__, __LINE__, __func__, address, size)
+
+#define LOG_DUMP_MEM(log_class, address, size)                                                     \
+    ::Log::LogDumpMem(::Log::Class::log_class, __FILE__, __LINE__, __func__, address, size)
 
 #define LOG_GENERIC(log_class, log_level, ...)                                                     \
     ::Log::LogMessage(log_class, log_level, __FILE__, __LINE__, __func__, __VA_ARGS__)

@@ -5,12 +5,15 @@
 #include <algorithm>
 #include <array>
 #include <cstdio>
+#include <sstream>
 #include "common/assert.h"
 #include "common/common_funcs.h" // snprintf compatibility define
 #include "common/logging/backend.h"
 #include "common/logging/filter.h"
 #include "common/logging/log.h"
 #include "common/logging/text_formatter.h"
+#include "common/string_util.h"
+#include "core/memory.h"
 
 namespace Log {
 
@@ -131,6 +134,36 @@ static Filter* filter = nullptr;
 
 void SetFilter(Filter* new_filter) {
     filter = new_filter;
+}
+
+void LogDump(Class log_class, const char* filename, unsigned int line_nr, const char* function,
+             unsigned int address, unsigned int size) {
+    LogDumpMem(log_class, filename, line_nr, function, Memory::GetPointer(address), size);
+}
+
+void LogDumpMem(Class log_class, const char* filename, unsigned int line_nr, const char* function,
+                const unsigned char* address, unsigned int size) {
+    std::ostringstream oss, text;
+    u32 hex_count = 0;
+    for (u32 i = 0; i < size; ++i) {
+        u8 c = address[i];
+        oss << Common::StringFromFormat("%02x ", c);
+        if (isprint(c)) {
+            text << c;
+        } else {
+            text << '.';
+        }
+        if (++hex_count == 0x10) {
+            LogMessage(log_class, Level::Debug, filename, line_nr, function, "%s: %s",
+                       oss.str().c_str(), text.str().c_str());
+            hex_count = 0;
+            oss.str("");
+            text.str("");
+        }
+    }
+    if (oss.str().length())
+        LogMessage(log_class, Level::Debug, filename, line_nr, function, "%s: %s",
+                   oss.str().c_str(), text.str().c_str());
 }
 
 void LogMessage(Class log_class, Level log_level, const char* filename, unsigned int line_nr,
