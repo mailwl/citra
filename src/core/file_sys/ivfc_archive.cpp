@@ -7,6 +7,7 @@
 #include "common/common_types.h"
 #include "common/logging/log.h"
 #include "core/file_sys/ivfc_archive.h"
+#include "ctr.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // FileSys namespace
@@ -86,12 +87,36 @@ u64 IVFCArchive::GetFreeBytes() const {
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 ResultVal<size_t> IVFCFile::Read(const u64 offset, const size_t length, u8* buffer) const {
-    LOG_TRACE(Service_FS, "called offset=%llu, length=%zu", offset, length);
-    romfs_file->Seek(data_offset + offset, SEEK_SET);
-    size_t read_length = (size_t)std::min((u64)length, data_size - offset);
+    LOG_TRACE(Service_FS, "called offset=0x%X, length=0x%X", offset, length);
 
-    return MakeResult<size_t>(romfs_file->ReadBytes(buffer, read_length));
+    if (romfs_file == nullptr) {
+        LOG_ERROR(Service_FS, "called with no RomFS, offset=0x%X, length=0x%X", offset, length);
+        return ResultVal<size_t>();
+    }
+
+    u32 pad = offset & 0xF;
+    u64 read_offset = offset & ~0xF;
+    size_t read_length = (size_t)std::min((u64)(length+pad), data_size - read_offset);
+    romfs_file->Seek(data_offset + read_offset, SEEK_SET);
+
+    std::vector<u8> tmp_vector(read_length);
+
+    size_t readed = romfs_file->ReadBytes(tmp_vector.data(), read_length);
+
+    if (romfs_file->Encrypted()) {
+        u8 key[16]{};
+        u8 counter[16]{};
+        ctr_aes_context aes{};
+        romfs_file->GetCounter(counter);
+        ctr_init_counter(&aes, key, counter);
+        ctr_add_counter(&aes, (read_offset+0x1000) / 0x10);
+        ctr_crypt_counter(&aes, tmp_vector.data(), tmp_vector.data(), readed);
+    }
+
+    std::memcpy(buffer, tmp_vector.data() + pad, readed - pad);
+    return MakeResult<size_t>(readed - pad);
 }
+
 
 ResultVal<size_t> IVFCFile::Write(const u64 offset, const size_t length, const bool flush,
                                   const u8* buffer) const {

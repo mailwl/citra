@@ -37,7 +37,7 @@ void GetAdapterState(Service::Interface* self) {
     rb.Push(RESULT_SUCCESS);
     rb.Push(battery_is_charging);
 
-    LOG_WARNING(Service_PTM, "(STUBBED) called");
+    LOG_WARNING(Service_PTM, "(STUBBED) called, charging=%u", battery_is_charging);
 }
 
 void GetShellState(Service::Interface* self) {

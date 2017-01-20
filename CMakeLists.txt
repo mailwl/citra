@@ -316,6 +316,10 @@ add_subdirectory(src)
 # Installation instructions
 # =========================
 
+add_subdirectory(externals/ctrtool)
+include_directories(externals/ctrltool)
+
+
 # Install freedesktop.org metadata files, following those specifications:
 # http://standards.freedesktop.org/desktop-entry-spec/desktop-entry-spec-latest.html
 # http://standards.freedesktop.org/icon-theme-spec/icon-theme-spec-latest.html

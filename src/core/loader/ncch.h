@@ -9,6 +9,7 @@
 #include "common/common_types.h"
 #include "common/swap.h"
 #include "core/loader/loader.h"
+#include "ctr.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 /// NCCH header (Note: "NCCH" appears to be a publicly unknown acronym)
@@ -224,6 +225,14 @@ private:
 
     bool is_exefs_loaded = false;
     bool is_compressed = false;
+    bool is_encrypted = false;
+
+    ctr_aes_context aes{};
+    ctr_rsa_context rsa{};
+    u8 key[16]{};
+    u8 exheadercounter[16]{};
+    u8 exefscounter[16]{};
+    u8 romfscounter[16]{};
 
     u32 entry_point = 0;
     u32 code_size = 0;

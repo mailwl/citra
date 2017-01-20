@@ -20,6 +20,7 @@
 #include "core/loader/ncch.h"
 #include "core/loader/smdh.h"
 #include "core/memory.h"
+#include "ctr.h"
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // Loader namespace
@@ -229,6 +230,14 @@ ResultStatus AppLoader_NCCH::LoadSectionExeFS(const char* name, std::vector<u8>&
                 if (file.ReadBytes(&temp_buffer[0], section.size) != section.size)
                     return ResultStatus::Error;
 
+                if (is_encrypted) {
+                    memset(&key, 0, sizeof(key));
+                    ctr_init_counter(&aes, key, exefscounter);
+                    ctr_add_counter(&aes, (section.offset + sizeof(ExeFs_Header)) / 0x10);
+                    ctr_crypt_counter(&aes, (u8*)&temp_buffer[0], (u8*)&temp_buffer[0],
+                                      section.size);
+                }
+
                 // Decompress .code section...
                 u32 decompressed_size = LZSS_GetDecompressedSize(&temp_buffer[0], section.size);
                 buffer.resize(decompressed_size);
@@ -239,6 +248,13 @@ ResultStatus AppLoader_NCCH::LoadSectionExeFS(const char* name, std::vector<u8>&
                 buffer.resize(section.size);
                 if (file.ReadBytes(&buffer[0], section.size) != section.size)
                     return ResultStatus::Error;
+                if (is_encrypted) {
+                    memset(&key, 0, sizeof(key));
+                    ctr_init_counter(&aes, key, exefscounter);
+                    ctr_add_counter(&aes, (section.offset + sizeof(ExeFs_Header)) / 0x10);
+                    ctr_crypt_counter(&aes, (u8*)&buffer[0], (u8*)&buffer[0],
+                                      section.size);
+                }
             }
             return ResultStatus::Success;
         }
@@ -275,6 +291,32 @@ ResultStatus AppLoader_NCCH::LoadExeFS() {
 
     if (file.ReadBytes(&exheader_header, sizeof(ExHeader_Header)) != sizeof(ExHeader_Header))
         return ResultStatus::Error;
+
+    // Check if ExHeader encrypted
+    if (memcmp(&exheader_header.arm11_system_local_caps.program_id, &ncch_header.program_id, 8)) {
+        // Fixed Crypto Key
+        if (ncch_header.flags[7] & 0x1) {
+            is_encrypted = true;
+            memset(&exheadercounter, 0, sizeof(exheadercounter));
+            memset(&exefscounter, 0, sizeof(exefscounter));
+            memset(&romfscounter, 0, sizeof(romfscounter));
+            if (ncch_header.version == 2 || ncch_header.version == 0) {
+                for (u8 i = 0; i < 8; i++) {
+                    exefscounter[i] = romfscounter[i] = exheadercounter[i] =
+                        ncch_header.partition_id[7 - i];
+                }
+                exheadercounter[8] = 1;
+                exefscounter[8] = 2;
+                romfscounter[8] = 3;
+            }
+        }
+    }
+
+    if (is_encrypted) {
+        memset(&key, 0, sizeof(key));
+        ctr_init_counter(&aes, key, exheadercounter);
+        ctr_crypt_counter(&aes, (u8*)&exheader_header, (u8*)&exheader_header, sizeof(ExHeader_Header));
+    }
 
     is_compressed = (exheader_header.codeset_info.flags.flag & 1) == 1;
     entry_point = exheader_header.codeset_info.text.address;
@@ -314,6 +356,12 @@ ResultStatus AppLoader_NCCH::LoadExeFS() {
     file.Seek(exefs_offset + ncch_offset, SEEK_SET);
     if (file.ReadBytes(&exefs_header, sizeof(ExeFs_Header)) != sizeof(ExeFs_Header))
         return ResultStatus::Error;
+
+    if (is_encrypted) {
+        memset(&key, 0, sizeof(key));
+        ctr_init_counter(&aes, key, exefscounter);
+        ctr_crypt_counter(&aes, (u8*)&exefs_header, (u8*)&exefs_header, sizeof(ExeFs_Header));
+    }
 
     is_exefs_loaded = true;
     return ResultStatus::Success;
@@ -358,7 +406,6 @@ ResultStatus AppLoader_NCCH::Load() {
 
     Service::FS::RegisterArchiveType(std::make_unique<FileSys::ArchiveFactory_SelfNCCH>(*this),
                                      Service::FS::ArchiveIdCode::SelfNCCH);
-
     ParseRegionLockoutInfo();
 
     return ResultStatus::Success;
@@ -412,6 +459,7 @@ ResultStatus AppLoader_NCCH::ReadRomFS(std::shared_ptr<FileUtil::IOFile>& romfs_
         romfs_file = std::make_shared<FileUtil::IOFile>(filepath, "rb");
         if (!romfs_file->IsOpen())
             return ResultStatus::Error;
+        romfs_file->SetEncrypted(is_encrypted, romfscounter);
 
         offset = romfs_offset;
         size = romfs_size;

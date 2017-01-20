@@ -247,10 +247,21 @@ public:
         m_good = true;
         std::clearerr(m_file);
     }
-
+    void SetEncrypted(bool encrypted, u8 counter[16]) {
+        m_encrypted = encrypted;
+        if(encrypted) {
+            memcpy(m_counter, counter, 16);
+        }
+    }
+    bool Encrypted() const { return m_encrypted; }
+    void GetCounter(u8* counter) {
+        std::memcpy(counter, m_counter, 16);
+    }
 private:
     std::FILE* m_file = nullptr;
     bool m_good = true;
+    bool m_encrypted = false;
+    u8 m_counter[16]{};
 };
 
 } // namespace

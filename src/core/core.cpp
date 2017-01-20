@@ -122,6 +122,7 @@ void System::PrepareReschedule() {
     reschedule_pending = true;
 }
 
+
 PerfStats::Results System::GetAndResetPerfStats() {
     return perf_stats.GetAndResetStats(CoreTiming::GetGlobalTimeUs());
 }
