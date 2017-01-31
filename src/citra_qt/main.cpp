@@ -342,6 +342,8 @@ void GMainWindow::BootGame(const std::string& filename) {
     if (!LoadROM(filename))
         return;
 
+    Core::System::GetInstance().SetExitCallback([&]{ ShutdownGame(); });
+
     // Create and start the emulation thread
     emu_thread = std::make_unique<EmuThread>(render_window);
     emit EmulationStarting(emu_thread.get());

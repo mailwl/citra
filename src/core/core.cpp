@@ -113,6 +113,12 @@ void System::PrepareReschedule() {
     reschedule_pending = true;
 }
 
+void System::ExitCallback() {
+    if (exit_callback) {
+        exit_callback();
+    }
+}
+
 void System::Reschedule() {
     if (!reschedule_pending) {
         return;

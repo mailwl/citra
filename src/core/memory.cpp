@@ -147,6 +147,8 @@ static u8* GetPointerFromVMA(VAddr vaddr) {
     case Kernel::VMAType::BackingMemory:
         direct_pointer = vma.backing_memory;
         break;
+    case Kernel::VMAType::Free:
+        return nullptr;
     default:
         UNREACHABLE();
     }

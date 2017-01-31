@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -83,6 +84,12 @@ public:
     /// Prepare the core emulation for a reschedule
     void PrepareReschedule();
 
+    void SetExitCallback(std::function<void()> callback) {
+        exit_callback = callback;
+    }
+
+    void ExitCallback();
+
     /**
      * Gets a reference to the emulated CPU.
      * @returns A reference to the emulated CPU.
@@ -111,6 +118,8 @@ private:
 
     /// When true, signals that a reschedule should happen
     bool reschedule_pending{};
+
+    std::function<void()> exit_callback;
 
     static System s_instance;
 };
